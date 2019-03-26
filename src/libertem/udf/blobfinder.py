@@ -209,7 +209,7 @@ def get_result_buffers_pass_2(num_disks):
     }
 
 
-def init_pass_2(partition, peaks, parameters):
+def init_pass_2(partition, peaks, parameters, centers, refineds, peak_values, peak_elevations):
     mask = mask_maker(parameters)
     crop_size = mask.get_crop_size()
     template = mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size))

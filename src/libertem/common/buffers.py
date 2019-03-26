@@ -85,7 +85,7 @@ class BufferWrapper(object):
 
     def get_view_for_frame(self, partition, tile, frame_idx):
         if self._kind == "sig":
-            return self._data[partition.slice.get(sig_only=True)]
+            return self._data[tile.tile_slice.get(sig_only=True)]
         elif self._kind == "nav":
             ref_slice = partition.slice
             tile_slice = tile.tile_slice.shift(ref_slice)

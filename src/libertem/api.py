@@ -387,7 +387,7 @@ class Context:
             return analysis.get_results(out)
         return out
 
-    def run_udf(self, dataset, fn, make_buffers, init=None, merge=merge_assign):
+    def run_udf(self, dataset, fn, make_buffers, init=None, merge=merge_assign, roi=None):
         """
         Run `fn` on `dataset`.
 
@@ -412,6 +412,10 @@ class Context:
         merge
             A function merging a partial result into the final result buffer. By default it just
             performs assignment.
+
+        roi
+            Region of interest as a bool array, its size should match the nav shape
+            of the dataset.
 
 
         Example
@@ -444,7 +448,7 @@ class Context:
             buf.allocate()
         cancel_id = str(uuid.uuid4())
 
-        tasks = make_udf_tasks(dataset, fn, init, make_buffers)
+        tasks = make_udf_tasks(dataset, fn, init, make_buffers, roi)
 
         for partition_result_buffers, partition in self.executor.run_tasks(tasks, cancel_id):
             buffer_views = {}
