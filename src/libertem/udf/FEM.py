@@ -6,39 +6,45 @@ from libertem.common.buffers import BufferWrapper
 from libertem.masks import _make_circular_mask
 
 
-def make_result_buffers():
+def make_result_buffers(num_bins):
     return {
         'intensity': BufferWrapper(
-            kind="nav", dtype="float32"
+            kind="nav", dtype="float32", extra_shape=(num_bins,),
         ),
     }
 
 
-def init(partition, center, rad_in, rad_out):
-    mask_out = 1*_make_circular_mask(
-        center[1], center[0],
-        partition.shape.sig[1], partition.shape.sig[0],
-        rad_out
-    )
-    mask_in = 1*_make_circular_mask(
-        center[1], center[0],
-        partition.shape.sig[1], partition.shape.sig[0],
-        rad_in
-    )
-    mask = mask_out - mask_in
+def init(partition, center, riros):
+    w, h = partition.shape.sig[1], partition.shape.sig[0]
+
+    masks = np.zeros((len(riros), h, w), dtype='bool')
+
+    for idx, (ri, ro) in enumerate(riros):
+        mask_out = _make_circular_mask(
+            center[1], center[0],
+            w, h,
+            ro
+        )
+        mask_in = _make_circular_mask(
+            center[1], center[0],
+            w, h,
+            ri
+        )
+        mask = mask_out & (~mask_in)
+        masks[idx] = mask
 
     kwargs = {
-        'mask': mask,
+        'masks': masks,
     }
     return kwargs
 
 
-def masked_std(frame, mask, intensity):
-    intensity[:] = np.std(frame[mask == 1])
-    return
+def masked_std(frame, masks, intensity):
+    for idx, mask in enumerate(masks):
+        intensity[idx] = np.std(frame[mask])
 
 
-def run_fem(ctx, dataset, center, rad_in, rad_out):
+def run_fem(ctx, dataset, center, rad_min, rad_max, num_bins):
     """
     Return a standard deviation(SD) value for each frame of pixels which belong to ring mask.
     Parameters
@@ -51,13 +57,16 @@ def run_fem(ctx, dataset, center, rad_in, rad_out):
         A dataset with 1- or 2-D scan dimensions and 2-D frame dimensions
 
     center: tuple
-        (x,y) - coordinates of a center of a ring for a masking region of interest to calculate SD
+        (y, x) - coordinates of a center of a ring for a masking region of interest to calculate SD
 
-    rad_in: int
+    rad_min: int
         Inner radius of a ring mask
 
-    rad_out: int
+    rad_max: int
         Outer radius of a ring mask
+
+    num_bins : int
+        Number of radial bins
 
     Returns
     -------
@@ -67,10 +76,13 @@ def run_fem(ctx, dataset, center, rad_in, rad_out):
 
     """
 
+    rads = np.arange(rad_min, rad_max, (rad_max - rad_min) / (num_bins + 1))
+    riros = list(zip(rads, rads[1:]))
+
     pass_results = ctx.run_udf(
         dataset=dataset,
-        make_buffers=make_result_buffers,
-        init=functools.partial(init, center=center, rad_in=rad_in, rad_out=rad_out),
+        make_buffers=functools.partial(make_result_buffers, num_bins=len(riros)),
+        init=functools.partial(init, center=center, riros=riros),
         fn=masked_std,
     )
 

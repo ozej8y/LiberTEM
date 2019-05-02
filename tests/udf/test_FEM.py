@@ -12,7 +12,7 @@ def test_smoke(lt_ctx):
     data = np.zeros([3*3, 8, 8]).astype(np.float32)
     dataset = MemoryDataSet(data=data, tileshape=(1, 8, 8),
                             num_partitions=2, sig_dims=2)
-    result = FEM.run_fem(ctx=lt_ctx, dataset=dataset, center=(1, 1), rad_in=0, rad_out=1)
+    result = FEM.run_fem(ctx=lt_ctx, dataset=dataset, center=(1, 1), rad_min=0, rad_max=1, num_bins=1)
     assert np.allclose(result['intensity'].data, np.zeros(data.shape[0]))
 
 
@@ -24,5 +24,5 @@ def test_smoke2(lt_ctx):
     data[8] = data[8] + [[0, 0, 0], [0, 0, 0], [0, 0, 9]]
     dataset = MemoryDataSet(data=data, tileshape=(1, 3, 3),
                             num_partitions=2, sig_dims=2)
-    result = FEM.run_fem(ctx=lt_ctx, dataset=dataset, center=(1, 1), rad_in=0, rad_out=1)
+    result = FEM.run_fem(ctx=lt_ctx, dataset=dataset, center=(1, 1), rad_min=0, rad_max=1, num_bins=1)
     assert np.allclose(result['intensity'].data, np.ones(data.shape[0]))
