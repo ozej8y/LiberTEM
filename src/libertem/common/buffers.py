@@ -94,7 +94,10 @@ class BufferWrapper(object):
         original dataset shape
         """
         if self._kind == "nav":
-            return self._data.reshape(self._ds_shape.nav)
+            shape = tuple(self._ds_shape.nav)
+            if self._extra_shape is not None:
+                shape = shape + self._extra_shape
+            return self._data.reshape(shape)
         else:
             return self._data
 

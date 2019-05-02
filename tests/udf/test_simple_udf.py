@@ -138,3 +138,30 @@ def test_bad_merge(lt_ctx):
             merge=bad_merge,
             make_buffers=my_buffers,
         )
+
+
+def test_extra_shape(lt_ctx):
+    data = _mk_random(size=(16, 16, 16, 16), dtype="float32")
+    dataset = MemoryDataSet(data=data, tileshape=(1, 16, 16),
+                            num_partitions=2, sig_dims=2)
+
+    def my_buffers():
+        return {
+            'pixelsum': BufferWrapper(
+                kind="nav", dtype="float32", extra_shape=(2,),
+            )
+        }
+
+    def my_frame_fn(frame, pixelsum):
+        pixelsum[:] = np.sum(frame)
+
+    res = lt_ctx.run_udf(
+        dataset=dataset,
+        fn=my_frame_fn,
+        make_buffers=my_buffers,
+    )
+    assert 'pixelsum' in res
+    print(data.shape, res['pixelsum'].data.shape)
+    expected = np.sum(data, axis=(2, 3))
+    assert np.allclose(res['pixelsum'].data[..., 0], expected)
+    assert np.allclose(res['pixelsum'].data[..., 1], expected)
